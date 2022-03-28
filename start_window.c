@@ -1,117 +1,120 @@
 #include <windows.h>
-#include <stdio.h>
 
 
-/*
-USEFULL INFO
-ExW means Extend to Wide character format (Unicode), A - ANCI format
-str (char string) - "Hello world!" - ASCII characters
-wcs (wide char string) - L"Hello world!" - 16-bit UNICODE characters (L means Long foramt)
-*/
+// оконна€ процедура обработки оконных сообщений
+LRESULT CALLBACK WindowProc(HWND, UINT, WPARAM, LPARAM);
 
-/*
-Window processing function processes the window messages
-hwnd is a handle to the window.
-uMsg is the message code; for example, the WM_SIZE message indicates the window was resized.
-wParam and lParam contain additional data that pertains to the message. The exact meaning depends on the message code.
-*/
-LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+
+// точка входа дл€ приложени€ Windows
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
-    switch (uMsg)
-    {
-    case WM_DESTROY:
-        // The PostQuitMessage function posts a WM_QUIT message to the message queue
-        PostQuitMessage(0);
-        break;
-    case WM_KEYDOWN:
-        printf("Key Down: %d\n", wParam);
-        break;
-    case WM_LBUTTONDOWN:
-        printf("Left Button Down\n");
-        break;
-    case WM_MOUSEMOVE:
-        // The LOWORD() and HIWORD() macros get the 16-bit width and height values from lParam
-        printf("Mouse Move: [%d, %d]\n", LOWORD(lParam), HIWORD(lParam));
-        break;
-    }
+    WNDCLASS wc;                        // WNDCLASS (window class) Ц класс окна
+    HWND hwnd;                          // HWND (handle to the window) Ц дескриптор окна (дескриптор Ц определенное число, которое ќ— использует дл€ идентификации объектов)
+    MSG msg;                            // MSG (message) Ц содержит информацию о сообщени€х из очереди сообщений потока
+    LPCWSTR className = L"className";   // LPCWSTR (long pointer to const wide string) Ц константна€ строка расширенных символов кодировки Unicode
 
-    return DefWindowProc(hwnd, uMsg, wParam, lParam);
-}
 
-int main()
-{
-    // Handle to the application instance
-    HINSTANCE hInstance = GetModuleHandle(NULL);
-
-    // Register the window class, WNDCLASS - window class
-    // LPCWSTR - Long Pointer to Const Wide String (const wchar_t*)
-    WNDCLASS wc;
-    const wchar_t CLASS_NAME[] = L"WindowClass";
-
+    // регистрируем класс окна
+    wc.style = CS_OWNDC;
     wc.lpfnWndProc = WindowProc;
+    wc.cbClsExtra = 0;
+    wc.cbWndExtra = 0;
     wc.hInstance = hInstance;
-    wc.lpszClassName = CLASS_NAME;
+    wc.hIcon = NULL;
+    wc.hCursor = NULL;
+    wc.hbrBackground = NULL;
+    wc.lpszMenuName = NULL;
+    wc.lpszClassName = className;
 
     RegisterClass(&wc);
 
-    /*
-    Create the window, HWND - handle to the window
-    Windows are not C++ classes. A program references to window by using a value called a handle.
-    It is just a number that OS uses to identify an object.
-    */
-    HWND hwnd = CreateWindow(
-        CLASS_NAME,                  // Window class
-        L"Learn to Program Windows", // Window text
-        WS_OVERLAPPEDWINDOW,         // Window style
-        CW_USEDEFAULT,               // X
-        CW_USEDEFAULT,               // Y
-        640,                         // Width
-        480,                         // Height
-        NULL,                     // Parent window    
-        NULL,                     // Menu
-        hInstance,                   // Instance handle
-        NULL                      // Additional application data
+
+    // создаем главное окно
+    hwnd = CreateWindow(
+        className,
+        L"Start Window",
+        WS_OVERLAPPEDWINDOW,
+        CW_USEDEFAULT,
+        CW_USEDEFAULT,
+        400,
+        320,
+        NULL,
+        NULL,
+        hInstance,
+        NULL
     );
 
-    // Show the window
+    if (!hwnd) return 1;
+
+    // показываем окно
     ShowWindow(hwnd, SW_SHOWNORMAL);
 
-    /*
-    Hide and show the console
-    ShowWindow(GetConsoleWindow(), SW_HIDE);
-    ShowWindow(GetConsoleWindow(), SW_SHOWNORMAL);
-    */
 
-    // Window message, MSG - message
-    MSG msg;
-
-    // Main loop
-    while (GetKeyState(VK_ESCAPE) >= 0)
+    // основной цикл программы
+    while (TRUE)
     {
-        // Processing window messages
-        if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+        // проверка сообщени€
+        // GetMessage() Ц ожидает, пока из очереди не будет получено сообщение
+        // вместо нее лучше использовать PeekMessage() Ц провер€ет очередь сообщений и извлекает сообщение
+        // она использует те же параметры и один параметр очереди
+        if (PeekMessage(&msg, hwnd, 0, 0, PM_REMOVE))
         {
-            /*
-            GetMessage is a blocking function
-            It waits until a message is received from the queue. During this time program is standing
-            For that case use PeekMessage function instead. It checks if the message in the queue and runs further
-            PeekMessage uses the same parameters + one for removing messages
-            */
+            // обработка сообщени€
+            TranslateMessage(&msg); // переводит сообщени€ виртуальных клавиш в символьные сообщени€
+            DispatchMessage(&msg);  // отправл€ет сообщение оконной процедуре WindowProc()
 
-            DispatchMessage(&msg);
-            if (msg.message == WM_QUIT) break;
+            if (msg.message == WM_QUIT)
+            {
+                break;
+            }
         }
-
-        /*
-        For example, user presses the left mouse button. This causes a chain of events:
-        1. The operating system puts a WM_LBUTTONDOWN message on the message queue.
-        2. Your program calls the GetMessage function.
-        3. GetMessage pulls the WM_LBUTTONDOWN message from the queueand fills in the MSG structure.
-        4. Your program calls the TranslateMessageand DispatchMessage functions.
-        5. Inside DispatchMessage, the operating system calls your window procedure.
-        6. Your window procedure can either respond to the message or ignore it.
-        */
     }
 
+
+    // уничтожаем окно
+    DestroyWindow(hwnd);
+
     return 0;
+}
+
+// оконна€ процедура Window Processing Function обрабатывает сообщени€ окна
+// hwnd Ц дескриптор окна
+// uMsg Ц код сообщени€  (например сообщение WM_KEYDOWN означает, что была нажата клавиша)
+// wParam и lParam содержат дополнительную информацию, относ€щуюс€ к сообщению
+LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    if (message == WM_CLOSE)
+    {
+        // в случае закрыти€ окна отправл€ем сообщение WM_QUIT в очередь сообщений
+        PostQuitMessage(0);
+    }
+    else if (message == WM_PAINT)
+    {
+        PAINTSTRUCT ps;
+
+        // подготавливает указанное окно к отрисовке и заполн€ет структуру PAINTSTRUCT информацией об отрисовке
+        HDC hdc = BeginPaint(hwnd, &ps);
+        RECT rc = ps.rcPaint; // координаты пр€моугольника дл€ заполнени€
+
+        // создает логическую кисть указанного сплошного цвета
+        HBRUSH hb = CreateSolidBrush(
+            RGB(0, 0, 255)
+        );
+
+        // заполн€ет всю область указанного пр€моугольника сплошным цветом
+        FillRect(hdc, &rc, hb);
+
+        // сигнализирует о завершении отрисовки в указанном окне
+        EndPaint(hwnd, &ps);
+
+        // удал€ем кисть
+        DeleteObject(hb);
+    }
+    else if (message == WM_KEYDOWN)
+    {
+        // в случае нажати€ клавиши Escape отправл€ем сообщение WM_QUIT в очередь сообщений
+        if (wParam == VK_ESCAPE) PostQuitMessage(0);
+    }
+
+    return DefWindowProc(hwnd, message, wParam, lParam);
 }
